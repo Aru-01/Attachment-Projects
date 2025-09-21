@@ -1,39 +1,36 @@
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
 from django.db.models import Count
-from rest_framework.views import APIView
-from rest_framework.mixins import CreateModelMixin, ListModelMixin
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework import status
-from product.models import Product, Category
+from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from product.models import Product, Category, Review
 from product import serializers
-
+from product.filters import ProductFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
+from product.pagination import DefaultPagination
 
 # Create your views here.
-class ProductList(ListCreateAPIView):
-    queryset = Product.objects.select_related("category").all()
-    serializer_class = serializers.ProductSerializers
-
-    # def get_queryset(self):
-    #     return Product.objects.select_related("category").all()
-
-    # def get_serializer_class(self):
-    #     return serializers.ProductSerializers
 
 
-class ProductDetail(RetrieveUpdateDestroyAPIView):
+class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = serializers.ProductSerializers
-    lookup_field = "id"
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # filterset_fields = ["category_id"]
+    filterset_class = ProductFilter
+    search_fields = ["name", "description"]
+    ordering_fields = ["price", "updated_at"]
+    pagination_class = DefaultPagination
 
 
-class CategoryList(ListCreateAPIView):
+class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.annotate(product_count=Count("products")).all()
     serializer_class = serializers.CategorySerializers
 
 
-class CategoryDetail(RetrieveUpdateDestroyAPIView):
-    queryset = Category.objects.annotate(product_count=Count("products")).all()
-    serializer_class = serializers.CategorySerializers
-    lookup_field = "id"
+class ReviewViewSet(ModelViewSet):
+    serializer_class = serializers.ReviewSerializers
 
+    def get_queryset(self):
+        return Review.objects.filter(product_id=self.kwargs["product_pk"])
+
+    def get_serializer_context(self):
+        return {"product_id": self.kwargs["product_pk"]}

@@ -1,1 +1,6 @@
 .phi_mart
+api/__pycache__
+order/__pycache__
+phi_mart/__pycache__
+product/__pycache__
+users/__pycache__
